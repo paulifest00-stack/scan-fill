@@ -61,18 +61,15 @@
   input, textarea, select { font-size: 17px; }
 }
 
-@layer components {
-  .ios-list { @apply bg-card rounded-md overflow-hidden; }
-  .ios-row { @apply flex min-h-11 items-center gap-3 px-4 py-[11px] text-[17px] leading-[22px]; }
-  .ios-list > * + * { box-shadow: inset 16px 0.5px 0 0 var(--color-card), inset 0 0.5px 0 0 var(--color-border); }
-  .ios-section-label { @apply px-4 pb-1.5 pt-5 text-[13px] uppercase tracking-wide text-muted-foreground; }
-  .ios-glass { background: var(--color-chrome); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
-  .ios-btn { @apply inline-flex h-[50px] items-center justify-center gap-2 rounded-lg px-5 text-[17px] font-semibold transition active:scale-[0.98] active:opacity-80 disabled:opacity-40; }
-  .ios-btn-primary { @apply ios-btn bg-primary text-primary-foreground; }
-  .ios-btn-tinted { @apply ios-btn bg-primary/12 text-primary; }
-  .ios-field { @apply w-full min-w-0 flex-1 bg-transparent text-right outline-none placeholder:text-tertiary; }
-  .skeleton { @apply animate-pulse rounded bg-secondary; }
-  .scan-line { animation: scan 1.8s ease-in-out infinite; }
-}
+@utility ios-list { @apply bg-card rounded-md overflow-hidden; & > * + * { box-shadow: inset 16px 0.5px 0 0 var(--color-card), inset 0 0.5px 0 0 var(--color-border); } }
+@utility ios-row { @apply flex min-h-11 items-center gap-3 px-4 py-[11px] text-[17px] leading-[22px]; }
+@utility ios-section-label { @apply px-4 pb-1.5 pt-5 text-[13px] uppercase tracking-wide text-muted-foreground; }
+@utility ios-glass { background: var(--color-chrome); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
+@utility ios-btn { @apply inline-flex h-[50px] items-center justify-center gap-2 rounded-lg px-5 text-[17px] font-semibold transition active:scale-[0.98] active:opacity-80 disabled:opacity-40; }
+@utility ios-btn-primary { @apply ios-btn bg-primary text-primary-foreground; }
+@utility ios-btn-tinted { @apply ios-btn bg-primary/12 text-primary; }
+@utility ios-field { @apply w-full min-w-0 flex-1 bg-transparent text-right outline-none placeholder:text-tertiary; }
+@utility skeleton { @apply animate-pulse rounded bg-secondary; }
+@utility scan-line { animation: scan 1.8s ease-in-out infinite; }
 
 @keyframes scan { 0%,100% { transform: translateY(-60px); } 50% { transform: translateY(60px); } }
