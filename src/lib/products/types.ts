@@ -4,7 +4,7 @@ export type FieldOrigin = "confirmed" | "suggested";
 export interface Product {
   id: string;
   /** Id in the ERP once synced; undefined while local-only. */
-  remoteId?: string;
+  remoteId?: string | undefined;
   name: string;
   sku: string;
   gtin: string;
@@ -26,7 +26,7 @@ export interface Product {
   updatedAt: string;
 }
 
-export type ProductDraft = Omit<Product, "id" | "updatedAt" | "syncStatus">;
+export type ProductDraft = Omit<Product, "id" | "updatedAt" | "syncStatus"> & { id?: string };
 
 export const emptyDraft = (): ProductDraft => ({
   name: "", sku: "", gtin: "", ncm: "", category: "", unit: "UN",

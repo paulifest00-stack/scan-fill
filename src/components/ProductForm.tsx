@@ -151,7 +151,7 @@ export function ProductForm({ initial, saving, submitLabel, onSubmit }: Props) {
   );
 }
 
-function Row({ label, origin, children }: { label: string; origin?: "confirmed" | "suggested"; children: ReactNode }) {
+function Row({ label, origin, children }: { label: string; origin?: "confirmed" | "suggested" | undefined; children: ReactNode }) {
   return (
     <label className="ios-row">
       <span className="flex shrink-0 items-center gap-1">

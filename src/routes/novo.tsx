@@ -34,7 +34,7 @@ function NewProduct() {
   if (from && base.isLoading) return <NavBar title="Duplicar" />;
 
   const initial = base.data
-    ? { ...base.data, remoteId: undefined, sku: "", gtin: "", images: [], name: `${base.data.name} (cópia)` }
+    ? { ...base.data, id: undefined as never, remoteId: undefined, sku: "", gtin: "", images: [], name: `${base.data.name} (cópia)` }
     : { ...emptyDraft(), gtin: gtin ?? "", origins: gtin ? { gtin: "confirmed" as const } : {} };
 
   return (
