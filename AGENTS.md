@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Screens access products only through the ProductRepository interface (src/lib/products/repository.ts) — lets the ERP adapter replace local storage without touching UI.
+- Barcode reading uses @zxing/browser loaded dynamically — works on iOS Safari, which lacks native BarcodeDetector.

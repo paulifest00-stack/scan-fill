@@ -1,0 +1,9 @@
+{
+  "name": "Paulifest Catálogo",
+  "short_name": "Catálogo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F2F2F7",
+  "theme_color": "#F2F2F7",
+  "icons": [{ "src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon" }]
+}
