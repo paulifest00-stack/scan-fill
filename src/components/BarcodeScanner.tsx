@@ -62,7 +62,7 @@ export function BarcodeScanner({ open, onClose, onDetected, title = "Escanear c√
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-scrim text-primary-foreground animate-in fade-in">
+    <div className="fixed inset-0 z-50 flex flex-col bg-foreground text-primary-foreground animate-in fade-in">
       <div className="flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),16px)] pb-3">
         <button aria-label="Fechar" onClick={onClose} className="grid size-11 place-items-center rounded-full bg-card/15"><X className="size-5" /></button>
         <span className="text-[17px] font-semibold">{title}</span>
