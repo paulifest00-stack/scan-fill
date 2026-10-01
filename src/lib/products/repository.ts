@@ -33,7 +33,8 @@ export const localRepository: ProductRepository = {
   async get(id) { return read().find((p) => p.id === id); },
   async findByGtin(gtin) { return read().find((p) => p.gtin === gtin); },
   async create(d) {
-    const p: Product = { ...d, id: crypto.randomUUID(), syncStatus: "pending", updatedAt: new Date().toISOString() };
+    const { id: _omit, ...data } = d;
+    const p: Product = { ...data, id: crypto.randomUUID(), syncStatus: "pending", updatedAt: new Date().toISOString() };
     write([p, ...read()]);
     return p;
   },
@@ -41,9 +42,10 @@ export const localRepository: ProductRepository = {
     const items = read();
     const i = items.findIndex((p) => p.id === id);
     if (i < 0) throw new Error("Produto não encontrado");
-    items[i] = { ...items[i], ...d, syncStatus: "pending", updatedAt: new Date().toISOString() };
+    const { id: _ignored, ...rest } = d;
+    items[i] = { ...items[i]!, ...rest, id, syncStatus: "pending", updatedAt: new Date().toISOString() };
     write(items);
-    return items[i];
+    return items[i]!;
   },
 };
 
