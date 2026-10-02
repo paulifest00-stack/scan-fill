@@ -63,20 +63,9 @@ const LABELS: Partial<Record<EditableField, string>> = {
 };
 
 export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, onSaved }: Props) {
-  const [supplierSearch, setSupplierSearch] = useState("");
-  const suppliers = useQuery({
-    queryKey: ["bling", "contacts", supplierSearch],
-    queryFn: () => repo.contacts!(supplierSearch),
-    enabled: isRemote() && supplierSearch.length >= 2,
-  });
   const categories = useQuery({
     queryKey: ["bling", "categories"],
     queryFn: () => repo.categories!(),
-    enabled: isRemote(),
-  });
-  const deposits = useQuery({
-    queryKey: ["bling", "deposits"],
-    queryFn: () => repo.deposits!(),
     enabled: isRemote(),
   });
   const [d, setD] = useState<ProductInput>(initial);
@@ -87,6 +76,9 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
   const [gtinOwner, setGtinOwner] = useState<{ id: string; name: string } | null>(null);
   const [suggestions, setSuggestions] = useState<FieldSuggestion[] | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [descriptionBusy, setDescriptionBusy] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState<string | null>(null);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const savedRef = useRef(false);
@@ -345,7 +337,7 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
             onChange={(e) => setText("brand", e.target.value)}
           />
         </Row>
-        <Row label="Categoria" origin={d.origins.category}>
+        <Row label="Categoria interna do Bling" origin={d.origins.category}>
           {isRemote() ? (
             <select
               className="ios-field"
@@ -425,63 +417,55 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
       </div>
 
       {isRemote() && (
-        <div className="px-4 pt-2">
-          <p className="text-[13px] text-muted-foreground">
-            Estoque é o saldo físico total. O ajuste será lançado no depósito escolhido. Custo exige
-            vínculo de fornecedor padrão no Bling.
-          </p>
-          <label className="ios-row">
-            Buscar fornecedor
-            <input
-              aria-label="Buscar fornecedor"
-              className="ios-field"
-              placeholder="Nome do fornecedor"
-              value={supplierSearch}
-              onChange={(e) => setSupplierSearch(e.target.value)}
-            />
-          </label>
-          {suppliers.data && (
-            <label className="ios-row">
-              Fornecedor
-              <select
-                aria-label="Fornecedor"
-                className="ios-field"
-                value={d.supplierId ?? ""}
-                onChange={(e) => setD((p) => ({ ...p, supplierId: e.target.value }))}
-              >
-                <option value="">Escolher contato fornecedor</option>
-                {suppliers.data.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+        <p className="px-4 pt-2 text-[13px] text-muted-foreground">
+          Informe o saldo final desejado. A entrada ou saída é calculada automaticamente.
+          {d.stock !== null && d.stock !== (initial.stock ?? 0) && (
+            <span className="block font-medium text-foreground">
+              {d.stock - (initial.stock ?? 0) > 0 ? "Entrada" : "Saída"} de{" "}
+              {Math.abs(d.stock - (initial.stock ?? 0))} unidade(s): {initial.stock ?? 0} →{" "}
+              {d.stock}.
+            </span>
           )}
-          {d.supplierId && <p className="text-[13px]">Fornecedor escolhido: {d.supplierId}</p>}
-          <label className="ios-row">
-            Depósito
-            <select
-              aria-label="Depósito"
-              className="ios-field"
-              value={d.depositId ?? ""}
-              onChange={(e) => setD((p) => ({ ...p, depositId: e.target.value }))}
-            >
-              <option value="">Selecionar para ajustar estoque</option>
-              {deposits.data?.map((dep) => (
-                <option key={dep.id} value={dep.id}>
-                  {dep.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          {(categories.error || deposits.error) && (
-            <p role="alert" className="text-destructive">
-              Não foi possível carregar categorias ou depósitos. Confira os escopos do aplicativo.
-            </p>
-          )}
-        </div>
+          O custo é salvo no registro padrão do produto, sem escolher fornecedor.
+        </p>
       )}
+      <details className="mx-4 my-4 rounded-xl bg-card p-4 text-sm">
+        <summary className="cursor-pointer font-medium">
+          Preparar para vender em outras lojas
+        </summary>
+        <p className="mt-3">
+          A categoria interna organiza seus produtos no Bling. Cada marketplace usa suas próprias
+          categorias e atributos. Selecionar uma categoria interna não publica nem vincula o anúncio
+          automaticamente.
+        </p>
+        <p className="mt-2">
+          No Mercado Livre, crie o anúncio em Vendas → Gestão de Anúncios no Bling: confira a
+          categoria sugerida e preencha os atributos obrigatórios daquela categoria.
+        </p>
+        <p className="mt-2 font-medium">Dados para revisar no cadastro:</p>
+        <ul className="mt-2 space-y-1">
+          {[
+            ["Nome e SKU", !!d.name.trim() && !!d.sku.trim()],
+            ["Preço de venda", d.price !== null && d.price > 0],
+            ["Foto", d.images.length > 0],
+            ["Descrição", !!d.description.trim()],
+            ["GTIN/EAN (ou motivo de ausência no anúncio)", !!d.gtin],
+            [
+              "Peso e dimensões da embalagem",
+              !!d.grossWeightKg && !!d.widthCm && !!d.heightCm && !!d.depthCm,
+            ],
+            ["NCM e origem fiscal", !!d.ncm && d.taxOrigin !== ""],
+          ].map(([label, ready]) => (
+            <li key={String(label)}>
+              {ready ? "✓" : "○"} {label}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-muted-foreground">
+          Esta revisão cobre os dados gerais. Os requisitos finais variam conforme loja, categoria e
+          regras fiscais; confira também os atributos, modalidade e envio do anúncio no Bling.
+        </p>
+      </details>
       <div className="ios-section-label">Fiscal</div>
       <div className="ios-list mx-4">
         <Row label="NCM" origin={d.origins.ncm}>
@@ -565,6 +549,59 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
       </div>
 
       <div className="ios-section-label">Descrição</div>
+      <div className="mx-4 mb-3">
+        <button
+          type="button"
+          className="ios-btn-tinted w-full"
+          disabled={descriptionBusy || !d.name.trim() || saving}
+          onClick={async () => {
+            setDescriptionBusy(true);
+            setDescriptionError(null);
+            try {
+              setDescriptionDraft((await repo.generateDescription!(d)).description);
+            } catch (error) {
+              setDescriptionError(toRepoError(error).message);
+            } finally {
+              setDescriptionBusy(false);
+            }
+          }}
+        >
+          {descriptionBusy ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Sparkles className="size-4" />
+          )}
+          {descriptionBusy ? "Gerando descrição…" : "Gerar descrição com IA"}
+        </button>
+        {descriptionError && (
+          <p role="alert" className="mt-2 text-[13px] text-destructive">
+            {descriptionError}
+          </p>
+        )}
+        {descriptionDraft && (
+          <div className="mt-3 rounded-xl bg-card p-3">
+            <p className="text-[13px] font-medium">Revise a sugestão antes de usar</p>
+            <p className="my-3 whitespace-pre-wrap text-sm">{descriptionDraft}</p>
+            <button
+              type="button"
+              className="ios-btn-tinted w-full"
+              onClick={() => {
+                setText("description", descriptionDraft);
+                setDescriptionDraft(null);
+              }}
+            >
+              Usar esta descrição
+            </button>
+            <button
+              type="button"
+              className="mt-2 w-full text-sm text-muted-foreground"
+              onClick={() => setDescriptionDraft(null)}
+            >
+              Descartar sugestão
+            </button>
+          </div>
+        )}
+      </div>
       <div className="ios-list mx-4">
         <textarea
           rows={4}

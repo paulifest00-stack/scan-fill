@@ -23,6 +23,7 @@ export interface ListResult {
  * All methods must reject with RepoError (see errors.ts).
  */
 export interface ProductRepository {
+  generateDescription?(input: ProductInput): Promise<{ description: string }>;
   contacts?(query: string): Promise<{ id: string; name: string }[]>;
   categories?(): Promise<{ id: string; name: string }[]>;
   deposits?(): Promise<{ id: string; name: string }[]>;
@@ -302,6 +303,9 @@ export const localRepository: ProductRepository = {
 export const isRemote = () => !!gatewayUrl();
 const current = () => (isRemote() ? remoteRepository : localRepository);
 export const repo: ProductRepository = {
+  generateDescription: (input) =>
+    current().generateDescription?.(input) ??
+    Promise.reject(new RepoError("validation", "Conecte ao Bling para usar a descrição com IA.")),
   list: (p) => current().list(p),
   get: (id) => current().get(id),
   findByCode: (code) => current().findByCode(code),

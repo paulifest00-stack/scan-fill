@@ -33,6 +33,18 @@ async function save(input: ProductInput, id?: string) {
   return result;
 }
 export const remoteRepository: ProductRepository = {
+  generateDescription: (input) =>
+    gatewayRequest("/mobile/description", {
+      method: "POST",
+      body: {
+        input: {
+          name: input.name,
+          brand: input.brand,
+          unit: input.unit,
+          description: input.description,
+        },
+      },
+    }),
   list: (input) =>
     gatewayRequest(`/mobile/products?${params({ ...input, limit: input.limit ?? 20 })}`),
   get: (id) => gatewayRequest(`/mobile/products/${encodeURIComponent(id)}`),
