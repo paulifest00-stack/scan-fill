@@ -33,6 +33,18 @@ async function save(input: ProductInput, id?: string) {
   return result;
 }
 export const remoteRepository: ProductRepository = {
+  categoryFields: (categoryId) =>
+    gatewayRequest(`/mobile/category-fields?${params({ categoryId })}`),
+  stores: () => gatewayRequest("/mobile/stores"),
+  categoryLinks: (storeId) => gatewayRequest(`/mobile/category-links?${params({ storeId })}`),
+  marketplaceCategories: (storeId, parent) =>
+    gatewayRequest(`/mobile/marketplace-categories?${params({ storeId, parent })}`),
+  linkCategory: (storeId, categoryId, path) =>
+    gatewayRequest("/mobile/category-links", {
+      method: "POST",
+      body: { storeId, categoryId, path },
+    }),
+
   generateDescription: (input) =>
     gatewayRequest("/mobile/description", {
       method: "POST",

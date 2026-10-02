@@ -1,3 +1,4 @@
+import type { Store, CategoryOption, CategoryLink } from "./categories";
 import { gatewayUrl } from "../bling/session";
 import { remoteRepository } from "./remote-repository";
 import { RepoError } from "./errors";
@@ -23,6 +24,14 @@ export interface ListResult {
  * All methods must reject with RepoError (see errors.ts).
  */
 export interface ProductRepository {
+  categoryFields?(
+    categoryId: string,
+  ): Promise<{ id: string; name: string; required: boolean; options: string[] }[]>;
+  stores?(): Promise<Store[]>;
+  categoryLinks?(storeId: string): Promise<CategoryLink[]>;
+  marketplaceCategories?(storeId: string, parent?: string): Promise<CategoryOption[]>;
+  linkCategory?(storeId: string, categoryId: string, path: string[]): Promise<CategoryLink>;
+
   generateDescription?(input: ProductInput): Promise<{ description: string }>;
   contacts?(query: string): Promise<{ id: string; name: string }[]>;
   categories?(): Promise<{ id: string; name: string }[]>;
@@ -303,6 +312,15 @@ export const localRepository: ProductRepository = {
 export const isRemote = () => !!gatewayUrl();
 const current = () => (isRemote() ? remoteRepository : localRepository);
 export const repo: ProductRepository = {
+  categoryFields: (id) => current().categoryFields?.(id) ?? Promise.resolve([]),
+  stores: () => current().stores?.() ?? Promise.resolve([]),
+  categoryLinks: (id) => current().categoryLinks?.(id) ?? Promise.resolve([]),
+  marketplaceCategories: (id, parent) =>
+    current().marketplaceCategories?.(id, parent) ?? Promise.resolve([]),
+  linkCategory: (storeId, categoryId, path) =>
+    current().linkCategory?.(storeId, categoryId, path) ??
+    Promise.reject(new RepoError("validation", "Conecte ao Bling.")),
+
   generateDescription: (input) =>
     current().generateDescription?.(input) ??
     Promise.reject(new RepoError("validation", "Conecte ao Bling para usar a descrição com IA.")),

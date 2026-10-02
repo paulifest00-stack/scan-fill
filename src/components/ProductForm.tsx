@@ -1,3 +1,5 @@
+import { ProductAttributes } from "./ProductAttributes";
+import { ProductCategories } from "./ProductCategories";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useBlocker } from "@tanstack/react-router";
@@ -160,6 +162,13 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
     setSaving(true);
     setSaveError(null);
     try {
+      for (const [field, value] of Object.entries(numText)) {
+        if (value.trim() && parseDecimal(value) === null)
+          throw new RepoError(
+            "validation",
+            `Confira o valor numérico em ${field === "stock" ? "Estoque" : field === "cost" ? "Custo" : field === "price" ? "Preço" : "Peso/dimensões"}.`,
+          );
+      }
       await onSubmit({ ...d, name: d.name.trim(), sku: d.sku.trim().toUpperCase() });
       savedRef.current = true;
       onSaved?.();
@@ -184,515 +193,503 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
         void submit();
       }}
     >
-      {/* Photos */}
-      <div className="flex gap-3 overflow-x-auto px-4 pt-3 pb-1">
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={photoBusy}
-          className="grid size-24 shrink-0 place-items-center rounded-lg border-2 border-dashed border-primary/40 bg-card text-primary active:opacity-70"
-        >
-          <span className="flex flex-col items-center gap-1 text-[13px] font-medium">
-            {photoBusy ? (
-              <Loader2 className="size-6 animate-spin" />
-            ) : (
-              <Camera className="size-6" />
-            )}
-            Foto
-          </span>
-        </button>
-        {d.images.map((img, i) => (
-          <div key={img.url.slice(-40) + i} className="relative size-24 shrink-0">
-            <img
-              src={img.url}
-              alt={`Foto ${i + 1}`}
-              className="size-full rounded-lg object-cover"
-            />
-            {i === 0 && (
-              <span className="absolute bottom-1 left-1 rounded bg-foreground/70 px-1.5 text-[11px] text-card">
-                Capa
-              </span>
-            )}
-            <button
-              type="button"
-              aria-label="Remover foto"
-              onClick={() => setD((p) => ({ ...p, images: p.images.filter((_, j) => j !== i) }))}
-              className="absolute -top-1.5 -right-1.5 grid size-7 place-items-center rounded-full bg-foreground text-card"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-        ))}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          multiple
-          hidden
-          onChange={(e) => void onPhotos(e.target.files)}
-        />
-      </div>
-
-      {/* Quick actions */}
-      <div className="grid gap-2 px-4 pt-4">
-        <button type="button" onClick={() => setScanning(true)} className="ios-btn-tinted w-full">
-          <ScanLine className="size-5" />{" "}
-          {d.gtin ? "Escanear novamente" : "Escanear código de barras"}
-        </button>
-        {d.images.length > 0 && (
+      <fieldset disabled={saving} className="contents">
+        {/* Photos */}
+        <div className="flex gap-3 overflow-x-auto px-4 pt-3 pb-1">
           <button
             type="button"
-            onClick={() => void runAnalysis()}
-            disabled={analyzing || !analyzer.available}
-            className="ios-btn h-11 w-full bg-ai/10 text-[15px] text-ai"
+            onClick={() => fileRef.current?.click()}
+            disabled={photoBusy}
+            className="grid size-24 shrink-0 place-items-center rounded-lg border-2 border-dashed border-primary/40 bg-card text-primary active:opacity-70"
           >
-            {analyzing ? (
+            <span className="flex flex-col items-center gap-1 text-[13px] font-medium">
+              {photoBusy ? (
+                <Loader2 className="size-6 animate-spin" />
+              ) : (
+                <Camera className="size-6" />
+              )}
+              Foto
+            </span>
+          </button>
+          {d.images.map((img, i) => (
+            <div key={img.url.slice(-40) + i} className="relative size-24 shrink-0">
+              <img
+                src={img.url}
+                alt={`Foto ${i + 1}`}
+                className="size-full rounded-lg object-cover"
+              />
+              {i === 0 && (
+                <span className="absolute bottom-1 left-1 rounded bg-foreground/70 px-1.5 text-[11px] text-card">
+                  Capa
+                </span>
+              )}
+              <button
+                type="button"
+                aria-label="Remover foto"
+                onClick={() => setD((p) => ({ ...p, images: p.images.filter((_, j) => j !== i) }))}
+                className="absolute -top-1.5 -right-1.5 grid size-7 place-items-center rounded-full bg-foreground text-card"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          ))}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            hidden
+            onChange={(e) => void onPhotos(e.target.files)}
+          />
+        </div>
+
+        {/* Quick actions */}
+        <div className="grid gap-2 px-4 pt-4">
+          <button type="button" onClick={() => setScanning(true)} className="ios-btn-tinted w-full">
+            <ScanLine className="size-5" />{" "}
+            {d.gtin ? "Escanear novamente" : "Escanear código de barras"}
+          </button>
+          {d.images.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void runAnalysis()}
+              disabled={analyzing || !analyzer.available}
+              className="ios-btn h-11 w-full bg-ai/10 text-[15px] text-ai"
+            >
+              {analyzing ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Sparkles className="size-4" />
+              )}
+              {analyzer.available
+                ? "Sugerir dados pelas fotos"
+                : "Sugestão por foto disponível após conectar a IA"}
+            </button>
+          )}
+        </div>
+
+        {suggestions && (
+          <div className="mx-4 mt-3 rounded-md border border-ai/30 bg-card p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-ai">
+              <Sparkles className="size-4" />
+              Sugestões — confira antes de usar
+            </p>
+            {suggestions.length === 0 ? (
+              <p className="text-[15px] text-muted-foreground">Nada pôde ser lido com segurança.</p>
+            ) : (
+              suggestions.map((s) => (
+                <div key={s.field} className="flex items-center gap-2 border-t py-2 first:border-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] text-muted-foreground">
+                      {LABELS[s.field] ?? s.field} ·{" "}
+                      {s.kind === "read" ? "lido na embalagem" : "inferido"}
+                      {CRITICAL_FIELDS.has(s.field) ? " · confirme" : ""}
+                    </p>
+                    <p className="truncate text-[15px]">{String(s.value)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => applySuggestion(s)}
+                    className="h-9 rounded-full bg-ai/10 px-3 text-[15px] font-medium text-ai"
+                  >
+                    Usar
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        <div className="ios-section-label">Identificação</div>
+        <div className="ios-list mx-4">
+          <Row label="Nome" origin={d.origins.name}>
+            <input
+              className="ios-field"
+              placeholder="Obrigatório"
+              value={d.name}
+              enterKeyHint="next"
+              onChange={(e) => setText("name", e.target.value)}
+            />
+          </Row>
+          <Row label="GTIN/EAN" origin={d.origins.gtin}>
+            <input
+              className={`ios-field ${gtinOk ? "" : "text-destructive"}`}
+              inputMode="numeric"
+              placeholder="Digite ou escaneie"
+              value={d.gtin}
+              onChange={(e) => setText("gtin", e.target.value.replace(/\D/g, ""))}
+              onBlur={() => void checkGtinOwner(d.gtin)}
+            />
+            <IconBtn label="Ler código com a câmera" onClick={() => setScanning(true)}>
+              <ScanLine className="size-[22px]" />
+            </IconBtn>
+          </Row>
+          <Row label="SKU" origin={d.origins.sku}>
+            <input
+              className="ios-field font-mono text-[16px]"
+              placeholder="Obrigatório"
+              autoCapitalize="characters"
+              value={d.sku}
+              onChange={(e) => setText("sku", e.target.value.toUpperCase())}
+            />
+            <IconBtn
+              label="Gerar SKU"
+              onClick={() => setText("sku", generateSku(d.name, d.category))}
+            >
+              <Wand2 className="size-5" />
+            </IconBtn>
+          </Row>
+          <Row label="Marca" origin={d.origins.brand}>
+            <input
+              className="ios-field"
+              value={d.brand}
+              onChange={(e) => setText("brand", e.target.value)}
+            />
+          </Row>
+          <Row label="Categoria interna do Bling" origin={d.origins.category}>
+            {isRemote() ? (
+              <select
+                className="ios-field"
+                aria-label="Categoria"
+                value={d.category}
+                onChange={(e) => setText("category", e.target.value)}
+              >
+                <option value="">{categories.isLoading ? "Carregando…" : "Não informada"}</option>
+                {d.category && !categories.data?.some((c) => c.id === d.category) && (
+                  <option value={d.category}>Categoria {d.category}</option>
+                )}
+                {categories.data?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                className="ios-field"
+                value={d.category}
+                onChange={(e) => setText("category", e.target.value)}
+              />
+            )}
+          </Row>
+          <label className="ios-row">
+            <span className="flex-1">Ativo</span>
+            <input
+              type="checkbox"
+              className="ios-switch"
+              checked={d.status === "active"}
+              onChange={(e) =>
+                setD((p) => ({ ...p, status: e.target.checked ? "active" : "inactive" }))
+              }
+            />
+          </label>
+        </div>
+        {isRemote() && (
+          <ProductCategories
+            product={d}
+            categories={categories.data ?? []}
+            onSelect={(id) => setText("category", id)}
+          />
+        )}
+        {isRemote() && (
+          <ProductAttributes
+            product={d}
+            onChange={(customFields) => setD((p) => ({ ...p, customFields }))}
+          />
+        )}
+        {categories.error && (
+          <p role="alert" className="mx-4 mt-2 text-sm text-destructive">
+            {toRepoError(categories.error).message}
+          </p>
+        )}
+        {!gtinOk && <Hint tone="destructive">Dígito verificador inválido — confira o código.</Hint>}
+        {gtinOwner && (
+          <Hint tone="warning">
+            Este código já está em “{gtinOwner.name}”.{" "}
+            <Link
+              to="/produto/$id"
+              params={{ id: gtinOwner.id }}
+              className="font-semibold underline"
+            >
+              Abrir produto
+            </Link>
+          </Hint>
+        )}
+
+        <div className="ios-section-label">Preço e estoque</div>
+        <div className="ios-list mx-4">
+          <NumRow
+            label="Preço (R$)"
+            value={numValue("price")}
+            onChange={(v) => setNum("price", v)}
+            origin={d.origins.price}
+          />
+          <NumRow
+            label="Custo (R$)"
+            value={numValue("cost")}
+            onChange={(v) => setNum("cost", v)}
+            origin={d.origins.cost}
+          />
+          <NumRow
+            label="Estoque"
+            value={numValue("stock")}
+            onChange={(v) => setNum("stock", v)}
+            int
+            origin={d.origins.stock}
+          />
+          <Row label="Unidade">
+            <input
+              className="ios-field"
+              value={d.unit}
+              maxLength={6}
+              onChange={(e) => setText("unit", e.target.value.toUpperCase())}
+            />
+          </Row>
+        </div>
+
+        {isRemote() && (
+          <p className="px-4 pt-2 text-[13px] text-muted-foreground">
+            Informe o saldo final desejado. A entrada ou saída é calculada automaticamente.
+            {d.stock !== null && d.stock !== (initial.stock ?? 0) && (
+              <span className="block font-medium text-foreground">
+                {d.stock - (initial.stock ?? 0) > 0 ? "Entrada" : "Saída"} de{" "}
+                {Math.abs(d.stock - (initial.stock ?? 0))} unidade(s): {initial.stock ?? 0} →{" "}
+                {d.stock}.
+              </span>
+            )}
+            O custo é salvo no registro padrão do produto, sem escolher fornecedor.
+          </p>
+        )}
+        <div className="ios-section-label">Fiscal</div>
+        <div className="ios-list mx-4">
+          <Row label="NCM" origin={d.origins.ncm}>
+            <input
+              className="ios-field"
+              inputMode="numeric"
+              placeholder="8 dígitos"
+              maxLength={8}
+              value={d.ncm}
+              onChange={(e) => setText("ncm", e.target.value.replace(/\D/g, ""))}
+            />
+          </Row>
+          <Row label="CEST" origin={d.origins.cest}>
+            <input
+              className="ios-field"
+              inputMode="numeric"
+              placeholder="7 dígitos"
+              maxLength={7}
+              value={d.cest}
+              onChange={(e) => setText("cest", e.target.value.replace(/\D/g, ""))}
+            />
+          </Row>
+          <Row label="Origem" origin={d.origins.taxOrigin}>
+            <select
+              className="ios-field appearance-none"
+              value={d.taxOrigin}
+              onChange={(e) => setText("taxOrigin", e.target.value)}
+            >
+              <option value="">Não informado</option>
+              <option value="0">0 — Nacional</option>
+              <option value="1">1 — Estrangeira (importação direta)</option>
+              <option value="2">2 — Estrangeira (mercado interno)</option>
+              {["3", "4", "5", "6", "7", "8"].map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          </Row>
+          <Row label="GTIN embalagem" origin={d.origins.gtinPackage}>
+            <input
+              className="ios-field"
+              inputMode="numeric"
+              placeholder="Opcional"
+              value={d.gtinPackage}
+              onChange={(e) => setText("gtinPackage", e.target.value.replace(/\D/g, ""))}
+            />
+          </Row>
+        </div>
+        {d.ncm !== "" && d.ncm.length !== 8 && <Hint tone="warning">NCM deve ter 8 dígitos.</Hint>}
+
+        <div className="ios-section-label">Peso e dimensões</div>
+        <div className="ios-list mx-4">
+          <NumRow
+            label="Peso líquido (kg)"
+            value={numValue("netWeightKg")}
+            onChange={(v) => setNum("netWeightKg", v)}
+            origin={d.origins.netWeightKg}
+          />
+          <NumRow
+            label="Peso bruto (kg)"
+            value={numValue("grossWeightKg")}
+            onChange={(v) => setNum("grossWeightKg", v)}
+            origin={d.origins.grossWeightKg}
+          />
+          <NumRow
+            label="Largura (cm)"
+            value={numValue("widthCm")}
+            onChange={(v) => setNum("widthCm", v)}
+          />
+          <NumRow
+            label="Altura (cm)"
+            value={numValue("heightCm")}
+            onChange={(v) => setNum("heightCm", v)}
+          />
+          <NumRow
+            label="Profundidade (cm)"
+            value={numValue("depthCm")}
+            onChange={(v) => setNum("depthCm", v)}
+          />
+        </div>
+
+        <div className="ios-section-label">Descrição</div>
+        <div className="mx-4 mb-3">
+          <button
+            type="button"
+            className="ios-btn-tinted w-full"
+            disabled={descriptionBusy || !d.name.trim() || saving}
+            onClick={async () => {
+              setDescriptionBusy(true);
+              setDescriptionError(null);
+              try {
+                setDescriptionDraft((await repo.generateDescription!(d)).description);
+              } catch (error) {
+                setDescriptionError(toRepoError(error).message);
+              } finally {
+                setDescriptionBusy(false);
+              }
+            }}
+          >
+            {descriptionBusy ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
               <Sparkles className="size-4" />
             )}
-            {analyzer.available
-              ? "Sugerir dados pelas fotos"
-              : "Sugestão por foto disponível após conectar a IA"}
+            {descriptionBusy ? "Gerando descrição…" : "Gerar descrição com IA"}
           </button>
-        )}
-      </div>
-
-      {suggestions && (
-        <div className="mx-4 mt-3 rounded-md border border-ai/30 bg-card p-3">
-          <p className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-ai">
-            <Sparkles className="size-4" />
-            Sugestões — confira antes de usar
-          </p>
-          {suggestions.length === 0 ? (
-            <p className="text-[15px] text-muted-foreground">Nada pôde ser lido com segurança.</p>
-          ) : (
-            suggestions.map((s) => (
-              <div key={s.field} className="flex items-center gap-2 border-t py-2 first:border-0">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] text-muted-foreground">
-                    {LABELS[s.field] ?? s.field} ·{" "}
-                    {s.kind === "read" ? "lido na embalagem" : "inferido"}
-                    {CRITICAL_FIELDS.has(s.field) ? " · confirme" : ""}
-                  </p>
-                  <p className="truncate text-[15px]">{String(s.value)}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => applySuggestion(s)}
-                  className="h-9 rounded-full bg-ai/10 px-3 text-[15px] font-medium text-ai"
-                >
-                  Usar
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      <div className="ios-section-label">Identificação</div>
-      <div className="ios-list mx-4">
-        <Row label="Nome" origin={d.origins.name}>
-          <input
-            className="ios-field"
-            placeholder="Obrigatório"
-            value={d.name}
-            enterKeyHint="next"
-            onChange={(e) => setText("name", e.target.value)}
-          />
-        </Row>
-        <Row label="GTIN/EAN" origin={d.origins.gtin}>
-          <input
-            className={`ios-field ${gtinOk ? "" : "text-destructive"}`}
-            inputMode="numeric"
-            placeholder="Digite ou escaneie"
-            value={d.gtin}
-            onChange={(e) => setText("gtin", e.target.value.replace(/\D/g, ""))}
-            onBlur={() => void checkGtinOwner(d.gtin)}
-          />
-          <IconBtn label="Ler código com a câmera" onClick={() => setScanning(true)}>
-            <ScanLine className="size-[22px]" />
-          </IconBtn>
-        </Row>
-        <Row label="SKU" origin={d.origins.sku}>
-          <input
-            className="ios-field font-mono text-[16px]"
-            placeholder="Obrigatório"
-            autoCapitalize="characters"
-            value={d.sku}
-            onChange={(e) => setText("sku", e.target.value.toUpperCase())}
-          />
-          <IconBtn
-            label="Gerar SKU"
-            onClick={() => setText("sku", generateSku(d.name, d.category))}
-          >
-            <Wand2 className="size-5" />
-          </IconBtn>
-        </Row>
-        <Row label="Marca" origin={d.origins.brand}>
-          <input
-            className="ios-field"
-            value={d.brand}
-            onChange={(e) => setText("brand", e.target.value)}
-          />
-        </Row>
-        <Row label="Categoria interna do Bling" origin={d.origins.category}>
-          {isRemote() ? (
-            <select
-              className="ios-field"
-              aria-label="Categoria"
-              value={d.category}
-              onChange={(e) => setText("category", e.target.value)}
-            >
-              <option value="">{categories.isLoading ? "Carregando…" : "Não informada"}</option>
-              {d.category && !categories.data?.some((c) => c.id === d.category) && (
-                <option value={d.category}>Categoria {d.category}</option>
-              )}
-              {categories.data?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              className="ios-field"
-              value={d.category}
-              onChange={(e) => setText("category", e.target.value)}
-            />
-          )}
-        </Row>
-        <label className="ios-row">
-          <span className="flex-1">Ativo</span>
-          <input
-            type="checkbox"
-            className="ios-switch"
-            checked={d.status === "active"}
-            onChange={(e) =>
-              setD((p) => ({ ...p, status: e.target.checked ? "active" : "inactive" }))
-            }
-          />
-        </label>
-      </div>
-      {!gtinOk && <Hint tone="destructive">Dígito verificador inválido — confira o código.</Hint>}
-      {gtinOwner && (
-        <Hint tone="warning">
-          Este código já está em “{gtinOwner.name}”.{" "}
-          <Link to="/produto/$id" params={{ id: gtinOwner.id }} className="font-semibold underline">
-            Abrir produto
-          </Link>
-        </Hint>
-      )}
-
-      <div className="ios-section-label">Preço e estoque</div>
-      <div className="ios-list mx-4">
-        <NumRow
-          label="Preço (R$)"
-          value={numValue("price")}
-          onChange={(v) => setNum("price", v)}
-          origin={d.origins.price}
-        />
-        <NumRow
-          label="Custo (R$)"
-          value={numValue("cost")}
-          onChange={(v) => setNum("cost", v)}
-          origin={d.origins.cost}
-        />
-        <NumRow
-          label="Estoque"
-          value={numValue("stock")}
-          onChange={(v) => setNum("stock", v)}
-          int
-          origin={d.origins.stock}
-        />
-        <Row label="Unidade">
-          <input
-            className="ios-field"
-            value={d.unit}
-            maxLength={6}
-            onChange={(e) => setText("unit", e.target.value.toUpperCase())}
-          />
-        </Row>
-      </div>
-
-      {isRemote() && (
-        <p className="px-4 pt-2 text-[13px] text-muted-foreground">
-          Informe o saldo final desejado. A entrada ou saída é calculada automaticamente.
-          {d.stock !== null && d.stock !== (initial.stock ?? 0) && (
-            <span className="block font-medium text-foreground">
-              {d.stock - (initial.stock ?? 0) > 0 ? "Entrada" : "Saída"} de{" "}
-              {Math.abs(d.stock - (initial.stock ?? 0))} unidade(s): {initial.stock ?? 0} →{" "}
-              {d.stock}.
-            </span>
-          )}
-          O custo é salvo no registro padrão do produto, sem escolher fornecedor.
-        </p>
-      )}
-      <details className="mx-4 my-4 rounded-xl bg-card p-4 text-sm">
-        <summary className="cursor-pointer font-medium">
-          Preparar para vender em outras lojas
-        </summary>
-        <p className="mt-3">
-          A categoria interna organiza seus produtos no Bling. Cada marketplace usa suas próprias
-          categorias e atributos. Selecionar uma categoria interna não publica nem vincula o anúncio
-          automaticamente.
-        </p>
-        <p className="mt-2">
-          No Mercado Livre, crie o anúncio em Vendas → Gestão de Anúncios no Bling: confira a
-          categoria sugerida e preencha os atributos obrigatórios daquela categoria.
-        </p>
-        <p className="mt-2 font-medium">Dados para revisar no cadastro:</p>
-        <ul className="mt-2 space-y-1">
-          {[
-            ["Nome e SKU", !!d.name.trim() && !!d.sku.trim()],
-            ["Preço de venda", d.price !== null && d.price > 0],
-            ["Foto", d.images.length > 0],
-            ["Descrição", !!d.description.trim()],
-            ["GTIN/EAN (ou motivo de ausência no anúncio)", !!d.gtin],
-            [
-              "Peso e dimensões da embalagem",
-              !!d.grossWeightKg && !!d.widthCm && !!d.heightCm && !!d.depthCm,
-            ],
-            ["NCM e origem fiscal", !!d.ncm && d.taxOrigin !== ""],
-          ].map(([label, ready]) => (
-            <li key={String(label)}>
-              {ready ? "✓" : "○"} {label}
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-muted-foreground">
-          Esta revisão cobre os dados gerais. Os requisitos finais variam conforme loja, categoria e
-          regras fiscais; confira também os atributos, modalidade e envio do anúncio no Bling.
-        </p>
-      </details>
-      <div className="ios-section-label">Fiscal</div>
-      <div className="ios-list mx-4">
-        <Row label="NCM" origin={d.origins.ncm}>
-          <input
-            className="ios-field"
-            inputMode="numeric"
-            placeholder="8 dígitos"
-            maxLength={8}
-            value={d.ncm}
-            onChange={(e) => setText("ncm", e.target.value.replace(/\D/g, ""))}
-          />
-        </Row>
-        <Row label="CEST" origin={d.origins.cest}>
-          <input
-            className="ios-field"
-            inputMode="numeric"
-            placeholder="7 dígitos"
-            maxLength={7}
-            value={d.cest}
-            onChange={(e) => setText("cest", e.target.value.replace(/\D/g, ""))}
-          />
-        </Row>
-        <Row label="Origem" origin={d.origins.taxOrigin}>
-          <select
-            className="ios-field appearance-none"
-            value={d.taxOrigin}
-            onChange={(e) => setText("taxOrigin", e.target.value)}
-          >
-            <option value="">Não informado</option>
-            <option value="0">0 — Nacional</option>
-            <option value="1">1 — Estrangeira (importação direta)</option>
-            <option value="2">2 — Estrangeira (mercado interno)</option>
-            {["3", "4", "5", "6", "7", "8"].map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
-        </Row>
-        <Row label="GTIN embalagem" origin={d.origins.gtinPackage}>
-          <input
-            className="ios-field"
-            inputMode="numeric"
-            placeholder="Opcional"
-            value={d.gtinPackage}
-            onChange={(e) => setText("gtinPackage", e.target.value.replace(/\D/g, ""))}
-          />
-        </Row>
-      </div>
-      {d.ncm !== "" && d.ncm.length !== 8 && <Hint tone="warning">NCM deve ter 8 dígitos.</Hint>}
-
-      <div className="ios-section-label">Peso e dimensões</div>
-      <div className="ios-list mx-4">
-        <NumRow
-          label="Peso líquido (kg)"
-          value={numValue("netWeightKg")}
-          onChange={(v) => setNum("netWeightKg", v)}
-          origin={d.origins.netWeightKg}
-        />
-        <NumRow
-          label="Peso bruto (kg)"
-          value={numValue("grossWeightKg")}
-          onChange={(v) => setNum("grossWeightKg", v)}
-          origin={d.origins.grossWeightKg}
-        />
-        <NumRow
-          label="Largura (cm)"
-          value={numValue("widthCm")}
-          onChange={(v) => setNum("widthCm", v)}
-        />
-        <NumRow
-          label="Altura (cm)"
-          value={numValue("heightCm")}
-          onChange={(v) => setNum("heightCm", v)}
-        />
-        <NumRow
-          label="Profundidade (cm)"
-          value={numValue("depthCm")}
-          onChange={(v) => setNum("depthCm", v)}
-        />
-      </div>
-
-      <div className="ios-section-label">Descrição</div>
-      <div className="mx-4 mb-3">
-        <button
-          type="button"
-          className="ios-btn-tinted w-full"
-          disabled={descriptionBusy || !d.name.trim() || saving}
-          onClick={async () => {
-            setDescriptionBusy(true);
-            setDescriptionError(null);
-            try {
-              setDescriptionDraft((await repo.generateDescription!(d)).description);
-            } catch (error) {
-              setDescriptionError(toRepoError(error).message);
-            } finally {
-              setDescriptionBusy(false);
-            }
-          }}
-        >
-          {descriptionBusy ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Sparkles className="size-4" />
-          )}
-          {descriptionBusy ? "Gerando descrição…" : "Gerar descrição com IA"}
-        </button>
-        {descriptionError && (
-          <p role="alert" className="mt-2 text-[13px] text-destructive">
-            {descriptionError}
-          </p>
-        )}
-        {descriptionDraft && (
-          <div className="mt-3 rounded-xl bg-card p-3">
-            <p className="text-[13px] font-medium">Revise a sugestão antes de usar</p>
-            <p className="my-3 whitespace-pre-wrap text-sm">{descriptionDraft}</p>
-            <button
-              type="button"
-              className="ios-btn-tinted w-full"
-              onClick={() => {
-                setText("description", descriptionDraft);
-                setDescriptionDraft(null);
-              }}
-            >
-              Usar esta descrição
-            </button>
-            <button
-              type="button"
-              className="mt-2 w-full text-sm text-muted-foreground"
-              onClick={() => setDescriptionDraft(null)}
-            >
-              Descartar sugestão
-            </button>
-          </div>
-        )}
-      </div>
-      <div className="ios-list mx-4">
-        <textarea
-          rows={4}
-          className="w-full resize-none bg-transparent px-4 py-3 outline-none placeholder:text-tertiary"
-          placeholder="Descrição do produto"
-          value={d.description}
-          onChange={(e) => setText("description", e.target.value)}
-        />
-      </div>
-
-      {pendingSuggested.length > 0 && (
-        <div className="mx-4 mt-4 rounded-md bg-card p-3">
-          <p className="text-[13px]">Confira as sugestões antes de confirmar.</p>
-          {pendingSuggested.map((field) => (
-            <button
-              key={field}
-              type="button"
-              className="ios-btn-tinted mt-2 w-full"
-              onClick={() =>
-                setD((p) => ({ ...p, origins: { ...p.origins, [field]: "confirmed" } }))
-              }
-            >
-              Confirmar {LABELS[field] ?? field}: {String(d[field])}
-            </button>
-          ))}
-        </div>
-      )}
-      {/* Sticky footer */}
-      <div className="ios-glass fixed inset-x-0 bottom-0 z-30 border-t px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]">
-        <div className="mx-auto max-w-xl">
-          {saveError ? (
-            <div
-              role="alert"
-              className="mb-2 flex items-start gap-1.5 text-[13px] text-destructive"
-            >
-              <AlertCircle className="mt-px size-4 shrink-0" />
-              <span className="flex-1">
-                {saveError.message}{" "}
-                {saveError.code === "duplicate" && saveError.details?.existingId && (
-                  <Link
-                    to="/produto/$id"
-                    params={{ id: saveError.details.existingId }}
-                    className="font-semibold underline"
-                  >
-                    Abrir
-                  </Link>
-                )}
-                {saveError.code === "conflict" && onReload && (
-                  <button
-                    type="button"
-                    onClick={onReload}
-                    className="inline-flex items-center gap-1 font-semibold underline"
-                  >
-                    <RotateCw className="size-3" />
-                    Recarregar
-                  </button>
-                )}
-              </span>
-            </div>
-          ) : (
-            <p
-              className={`mb-2 flex items-center gap-1.5 text-[13px] ${missing.length ? "text-warning" : "text-success"}`}
-            >
-              {missing.length ? (
-                <AlertCircle className="size-4 shrink-0" />
-              ) : (
-                <CheckCircle2 className="size-4 shrink-0" />
-              )}
-              <span className="truncate">
-                {missing.length ? `Falta: ${missing.join(", ")}` : "Cadastro completo"}
-                {pendingSuggested.length > 0 && ` · ${pendingSuggested.length} sugerido(s) por IA`}
-              </span>
+          {descriptionError && (
+            <p role="alert" className="mt-2 text-[13px] text-destructive">
+              {descriptionError}
             </p>
           )}
-          <button
-            type="submit"
-            disabled={saving || !d.name.trim() || !gtinOk}
-            className="ios-btn-primary w-full"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="size-5 animate-spin" />
-                Salvando…
-              </>
-            ) : (
-              submitLabel
-            )}
-          </button>
+          {descriptionDraft && (
+            <div className="mt-3 rounded-xl bg-card p-3">
+              <p className="text-[13px] font-medium">Revise a sugestão antes de usar</p>
+              <p className="my-3 whitespace-pre-wrap text-sm">{descriptionDraft}</p>
+              <button
+                type="button"
+                className="ios-btn-tinted w-full"
+                onClick={() => {
+                  setText("description", descriptionDraft);
+                  setDescriptionDraft(null);
+                }}
+              >
+                Usar esta descrição
+              </button>
+              <button
+                type="button"
+                className="mt-2 w-full text-sm text-muted-foreground"
+                onClick={() => setDescriptionDraft(null)}
+              >
+                Descartar sugestão
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+        <div className="ios-list mx-4">
+          <textarea
+            rows={4}
+            className="w-full resize-none bg-transparent px-4 py-3 outline-none placeholder:text-tertiary"
+            placeholder="Descrição para exportar às lojas"
+            maxLength={5000}
+            value={d.description}
+            onChange={(e) => setText("description", e.target.value)}
+          />
+        </div>
 
+        {pendingSuggested.length > 0 && (
+          <div className="mx-4 mt-4 rounded-md bg-card p-3">
+            <p className="text-[13px]">Confira as sugestões antes de confirmar.</p>
+            {pendingSuggested.map((field) => (
+              <button
+                key={field}
+                type="button"
+                className="ios-btn-tinted mt-2 w-full"
+                onClick={() =>
+                  setD((p) => ({ ...p, origins: { ...p.origins, [field]: "confirmed" } }))
+                }
+              >
+                Confirmar {LABELS[field] ?? field}: {String(d[field])}
+              </button>
+            ))}
+          </div>
+        )}
+        {/* Sticky footer */}
+        <div className="ios-glass fixed inset-x-0 bottom-0 z-30 border-t px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]">
+          <div className="mx-auto max-w-xl">
+            {saveError ? (
+              <div
+                role="alert"
+                className="mb-2 flex items-start gap-1.5 text-[13px] text-destructive"
+              >
+                <AlertCircle className="mt-px size-4 shrink-0" />
+                <span className="flex-1">
+                  {saveError.message}{" "}
+                  {saveError.code === "duplicate" && saveError.details?.existingId && (
+                    <Link
+                      to="/produto/$id"
+                      params={{ id: saveError.details.existingId }}
+                      className="font-semibold underline"
+                    >
+                      Abrir
+                    </Link>
+                  )}
+                  {saveError.code === "conflict" && onReload && (
+                    <button
+                      type="button"
+                      onClick={onReload}
+                      className="inline-flex items-center gap-1 font-semibold underline"
+                    >
+                      <RotateCw className="size-3" />
+                      Recarregar
+                    </button>
+                  )}
+                </span>
+              </div>
+            ) : (
+              <p
+                className={`mb-2 flex items-center gap-1.5 text-[13px] ${missing.length ? "text-warning" : "text-success"}`}
+              >
+                {missing.length ? (
+                  <AlertCircle className="size-4 shrink-0" />
+                ) : (
+                  <CheckCircle2 className="size-4 shrink-0" />
+                )}
+                <span className="truncate">
+                  {missing.length ? `Falta: ${missing.join(", ")}` : "Cadastro completo"}
+                  {pendingSuggested.length > 0 &&
+                    ` · ${pendingSuggested.length} sugerido(s) por IA`}
+                </span>
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={saving || photoBusy || !d.name.trim() || !d.sku.trim() || !gtinOk}
+              className="ios-btn-primary w-full"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="size-5 animate-spin" />
+                  Salvando…
+                </>
+              ) : (
+                submitLabel
+              )}
+            </button>
+          </div>
+        </div>
+      </fieldset>
       <BarcodeScanner
         open={scanning}
         onClose={() => setScanning(false)}
