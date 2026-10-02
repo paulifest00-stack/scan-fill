@@ -2,7 +2,7 @@
 
 ## Integração implementada em 02/10/2026 (UTC)
 
-O app agora tem um adapter remoto e a tela de conexão com o Gateway do repositório `Paulifest-Seller-Copilot`. Sem uma URL configurada, continua em modo local; com uma URL configurada, não usa produtos fictícios quando a conexão falha.
+O app agora tem um adapter remoto e a tela de conexão com o Gateway do repositório `Paulifest-Seller-Copilot`. O endereço padrão é `https://paulifest-seller-copilot-gateway.onrender.com`. Não usa produtos fictícios quando a conexão falha.
 
 - OAuth usa `/auth/bling/start`, callback do Gateway e `/auth/bling/session`. O usuário autoriza no Bling e retorna ao app para concluir o pareamento.
 - Somente a sessão do Gateway fica no sessionStorage do navegador. Tokens Bling, client secret e renovação OAuth permanecem no backend PostgreSQL existente. Fechar a sessão do navegador pode exigir reconectar.
@@ -30,3 +30,10 @@ Client secret nunca deve ser colocado em `VITE_*`, no GitHub ou no frontend. A a
 ## Validação
 
 TypeScript, build e testes locais com HTTP/rede simulada. Ainda sem credenciais, sem Gateway público confirmado, sem migração contra PostgreSQL real nesta rodada e sem homologação de produtos ou estoque da conta Paulifest.
+
+## Publicação confirmada em 02/10/2026 (UTC)
+
+O Gateway Render respondeu HTTP 200 em `/health`. Antes do novo deploy, `/mobile/products` retornou 404: a publicação das novas rotas ainda precisa ser confirmada. Os dois PRs de integração foram incorporados à main.
+
+Callback cadastrado: `https://paulifest-seller-copilot-gateway.onrender.com/auth/bling/callback`.
+Webhook: `https://paulifest-seller-copilot-gateway.onrender.com/mobile/webhooks/bling`.

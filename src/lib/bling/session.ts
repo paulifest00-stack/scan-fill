@@ -1,11 +1,12 @@
 import { RepoError } from "../products/errors";
+export const DEFAULT_GATEWAY_URL = "https://paulifest-seller-copilot-gateway.onrender.com";
 const CONFIG = "paulifest.gateway.url";
 const SESSION = "paulifest.gateway.session";
 const PAIRING = "paulifest.gateway.pairing";
 type Session = { gatewaySessionToken: string; gatewayRefreshToken: string };
 export function gatewayUrl(): string {
   if (typeof window === "undefined") return "";
-  return localStorage.getItem(CONFIG) || import.meta.env["VITE_GATEWAY_URL"] || "";
+  return localStorage.getItem(CONFIG) || import.meta.env["VITE_GATEWAY_URL"] || DEFAULT_GATEWAY_URL;
 }
 export function setGatewayUrl(value: string) {
   const url = new URL(value.trim());
