@@ -23,21 +23,22 @@ export function ProductAttributes({
   };
   if (!product.category) return null;
   return (
-    <details className="mx-4 mt-3 rounded-xl bg-card p-3 text-sm">
-      <summary className="cursor-pointer font-medium">
-        Atributos da categoria {fields.data?.length ? `· ${fields.data.length}` : ""}
+    <details className="ios-card mx-4 mt-3 p-4 text-[14px] group">
+      <summary className="cursor-pointer font-semibold text-foreground flex items-center justify-between select-none">
+        <span>Atributos da categoria {fields.data?.length ? `· ${fields.data.length}` : ""}</span>
+        <span className="text-[12px] text-muted-foreground group-open:rotate-180 transition-transform">▼</span>
       </summary>
-      {fields.isLoading && <p className="mt-2">Carregando campos do Bling…</p>}
+      {fields.isLoading && <p className="mt-3 text-muted-foreground">Carregando campos do Bling…</p>}
       {fields.error && (
         <p role="alert" className="mt-2 text-destructive">
           {toRepoError(fields.error).message}{" "}
-          <button type="button" className="underline" onClick={() => void fields.refetch()}>
+          <button type="button" className="underline font-semibold" onClick={() => void fields.refetch()}>
             Tentar novamente
           </button>
         </p>
       )}
       {fields.data?.length === 0 && (
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mt-2 text-[12px] text-muted-foreground">
           Nenhum campo customizado retornado para esta categoria. A loja pode exigir atributos ainda
           não configurados no Bling.
         </p>
@@ -46,11 +47,13 @@ export function ProductAttributes({
         const value = product.customFields?.find((v) => v.id === f.id);
         return (
           <label key={f.id} className="mt-3 block">
-            {f.name}
-            {f.required ? " *" : ""}
+            <span className="text-[13px] font-medium text-foreground">
+              {f.name}
+              {f.required ? " *" : ""}
+            </span>
             {f.options.length ? (
               <select
-                className="ios-field mt-1 w-full"
+                className="ios-field mt-1 w-full rounded-xl border border-black/10 bg-black/[0.03] px-3 py-2 text-[15px] outline-none"
                 value={value?.item || value?.value || ""}
                 onChange={(e) => change(f.id, e.target.value, true)}
               >
@@ -63,7 +66,7 @@ export function ProductAttributes({
               </select>
             ) : (
               <input
-                className="ios-field mt-1 w-full"
+                className="ios-field mt-1 w-full rounded-xl border border-black/10 bg-black/[0.03] px-3 py-2 text-[15px] outline-none"
                 value={value?.value ?? ""}
                 maxLength={5000}
                 onChange={(e) => change(f.id, e.target.value)}
@@ -72,7 +75,7 @@ export function ProductAttributes({
           </label>
         );
       })}
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-3 text-[12px] text-muted-foreground border-t border-black/[0.06] pt-2">
         Campos configurados no Bling. Preencha os obrigatórios e confira o vínculo destes atributos
         com a Shopee antes de exportar.
       </p>

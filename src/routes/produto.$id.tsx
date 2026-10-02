@@ -36,26 +36,29 @@ function EditProduct() {
       to="/novo"
       search={{ from: id }}
       aria-label="Duplicar"
-      className="grid size-11 place-items-center text-primary"
+      className="ios-press grid size-9 place-items-center rounded-full bg-primary/10 text-primary hover:bg-primary/15 active:scale-90 transition-all"
     >
-      <Copy className="size-5" />
+      <Copy className="size-4.5" />
     </Link>
   );
 
   return (
     <div className="mx-auto min-h-screen max-w-xl">
-      <NavBar title="Editar" right={data ? dup : undefined} />
+      <NavBar title="Editar Produto" right={data ? dup : undefined} />
       <OfflineBanner />
       {error ? (
         <ErrorState error={error} onRetry={() => void refetch()} />
       ) : isLoading ? (
-        <div className="space-y-3 p-4">
-          <div className="skeleton h-24 w-24" />
-          <div className="skeleton h-12 w-full" />
-          <div className="skeleton h-40 w-full" />
+        <div className="space-y-4 p-4">
+          <div className="skeleton h-24 w-24 rounded-2xl" />
+          <div className="skeleton h-12 w-full rounded-2xl" />
+          <div className="skeleton h-48 w-full rounded-2xl" />
         </div>
       ) : !data ? (
-        <p className="p-8 text-center text-muted-foreground">Produto não encontrado.</p>
+        <div className="p-12 text-center text-muted-foreground">
+          <p className="text-[17px] font-semibold text-foreground">Produto não encontrado</p>
+          <p className="mt-1 text-[14px]">O produto pode ter sido removido ou não sincronizado.</p>
+        </div>
       ) : (
         <ProductForm
           key={`${data.id}:${data.version}`}

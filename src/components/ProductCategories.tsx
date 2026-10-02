@@ -60,34 +60,36 @@ export function ProductCategories({
   }, [storeId]);
   const missing = shopeeMissing(product);
   return (
-    <div className="mx-4 mt-3 rounded-xl bg-card p-3 text-sm">
+    <div className="ios-card mx-4 mt-3 p-4 text-[14px]">
       {suggestions.length > 0 && (
         <div>
-          <p className="mb-2 font-medium">Sugestões pelo nome</p>
+          <p className="mb-2 font-semibold text-[13px] uppercase tracking-wide text-muted-foreground">
+            Sugestões pelo nome
+          </p>
           <div className="flex flex-wrap gap-2">
             {suggestions.map((c) => (
               <button
                 key={c.id}
                 type="button"
-                className="rounded-lg bg-primary/10 px-3 py-2 text-primary"
+                className="ios-press rounded-full bg-primary/10 px-3.5 py-1.5 text-[13px] font-semibold text-primary hover:bg-primary/20 active:scale-95 transition-all"
                 onClick={() => onSelect(c.id)}
               >
                 {c.name}
               </button>
             ))}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1.5 text-[12px] text-muted-foreground">
             Confira a sugestão. A categoria atual só muda quando você escolhe.
           </p>
         </div>
       )}
       <div className="mt-3">
-        <label className="font-medium" htmlFor="category-store">
+        <label className="font-semibold text-[13px] uppercase tracking-wide text-muted-foreground block mb-1" htmlFor="category-store">
           Categoria na loja
         </label>
         <select
           id="category-store"
-          className="ios-field mt-1 w-full"
+          className="ios-field mt-1 w-full rounded-xl border border-black/10 bg-black/[0.03] px-3 py-2 text-[15px] outline-none"
           value={storeId}
           onChange={(e) => setStore(e.target.value)}
         >
