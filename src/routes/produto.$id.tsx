@@ -70,9 +70,9 @@ function EditProduct() {
           }}
           onSubmit={async (d) => {
             await save.mutateAsync(d);
-            await qc.invalidateQueries({ queryKey: productKeys.all });
           }}
           onSaved={() => {
+            void qc.invalidateQueries({ queryKey: productKeys.all }).catch(() => {});
             void navigate({ to: "/" });
           }}
         />

@@ -233,8 +233,9 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
       toast.success("Produto salvo com sucesso!");
       onSaved?.();
     } catch (e) {
-      setSaveError(toRepoError(e));
-      toast.error("Não foi possível salvar o produto");
+      const error = toRepoError(e);
+      setSaveError(error);
+      toast.error(error.message);
     } finally {
       setSaving(false);
     }
