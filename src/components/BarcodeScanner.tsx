@@ -14,6 +14,10 @@ export function BarcodeScanner({ open, onClose, onDetected, title = "Escanear c√
   const [error, setError] = useState<string | null>(null);
   const [torch, setTorch] = useState(false);
   const trackRef = useRef<MediaStreamTrack | null>(null);
+  const [manual, setManual] = useState("");
+  // Keep the latest callback without restarting the camera on every parent render.
+  const onDetectedRef = useRef(onDetected);
+  onDetectedRef.current = onDetected;
 
   useEffect(() => {
     if (!open) return;
@@ -32,7 +36,7 @@ export function BarcodeScanner({ open, onClose, onDetected, title = "Escanear c√
               done = true;
               navigator.vibrate?.(60);
               controls.stop();
-              onDetected(result.getText());
+              onDetectedRef.current(result.getText().trim());
             }
           },
         );
@@ -49,7 +53,7 @@ export function BarcodeScanner({ open, onClose, onDetected, title = "Escanear c√
       }
     })();
     return () => { done = true; stop(); trackRef.current = null; setTorch(false); };
-  }, [open, onDetected]);
+  }, [open]);
 
   const toggleTorch = async () => {
     const t = trackRef.current;
@@ -76,9 +80,15 @@ export function BarcodeScanner({ open, onClose, onDetected, title = "Escanear c√
           </div>
         </div>
       </div>
-      <p className="px-6 pt-4 pb-[max(env(safe-area-inset-bottom),24px)] text-center text-[15px] text-primary-foreground/80">
+      <p className="px-6 pt-4 pb-3 text-center text-[15px] text-primary-foreground/80">
         {error ?? "Aponte para o c√≥digo de barras. A leitura √© autom√°tica."}
       </p>
+      <form className="mx-auto flex w-full max-w-sm gap-2 px-6 pb-[max(env(safe-area-inset-bottom),20px)]"
+        onSubmit={(e) => { e.preventDefault(); if (manual.trim()) onDetectedRef.current(manual.trim()); setManual(""); }}>
+        <input value={manual} onChange={(e) => setManual(e.target.value.replace(/\s/g, ""))} inputMode="numeric" placeholder="Ou digite o c√≥digo"
+          className="h-11 flex-1 rounded-md bg-card/15 px-3 text-primary-foreground outline-none placeholder:text-primary-foreground/50" />
+        <button type="submit" className="h-11 rounded-md bg-primary px-4 font-semibold">OK</button>
+      </form>
     </div>
   );
 }
