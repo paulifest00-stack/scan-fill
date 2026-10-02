@@ -1,3 +1,4 @@
+import { normalizeFiscalInput } from "./fiscal";
 import { gatewayRequest } from "../bling/session";
 import type { ProductRepository } from "./repository";
 import type { Product, ProductInput, ProductImage } from "./types";
@@ -10,6 +11,7 @@ const params = (input: Record<string, unknown>) =>
 let operation: { fingerprint: string; id: string } | undefined;
 const uploaded = new Map<string, ProductImage>();
 async function save(input: ProductInput, id?: string) {
+  input = normalizeFiscalInput(input);
   const fingerprint = JSON.stringify({ id, input });
   if (operation?.fingerprint !== fingerprint) operation = { fingerprint, id: crypto.randomUUID() };
   const requestId = operation.id;

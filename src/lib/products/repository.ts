@@ -1,3 +1,4 @@
+import { normalizeFiscalInput } from "./fiscal";
 import type { Store, CategoryOption, CategoryLink } from "./categories";
 import { gatewayUrl } from "../bling/session";
 import { remoteRepository } from "./remote-repository";
@@ -265,6 +266,7 @@ export const localRepository: ProductRepository = {
     }),
   create: (input) =>
     network(() => {
+      input = normalizeFiscalInput(input);
       validateInput(input);
       const items = read();
       assertUnique(items, input);
@@ -281,6 +283,7 @@ export const localRepository: ProductRepository = {
     }, 500),
   update: (id, input) =>
     network(() => {
+      input = normalizeFiscalInput(input);
       validateInput(input);
       const items = read();
       const i = items.findIndex((p) => p.id === id);

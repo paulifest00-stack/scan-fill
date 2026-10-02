@@ -1,3 +1,4 @@
+import { normalizeFiscalCode, normalizeFiscalInput } from "@/lib/products/fiscal";
 import { ProductAttributes } from "./ProductAttributes";
 import { ProductCategories } from "./ProductCategories";
 import { useQuery } from "@tanstack/react-query";
@@ -70,7 +71,7 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
     queryFn: () => repo.categories!(),
     enabled: isRemote(),
   });
-  const [d, setD] = useState<ProductInput>(initial);
+  const [d, setD] = useState<ProductInput>(() => normalizeFiscalInput(initial));
   const [numText, setNumText] = useState<Partial<Record<NumKey, string>>>({});
   const [scanning, setScanning] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -85,7 +86,7 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
   const fileRef = useRef<HTMLInputElement>(null);
   const savedRef = useRef(false);
 
-  const dirty = useMemo(() => JSON.stringify(d) !== JSON.stringify(initial), [d, initial]);
+  const dirty = useMemo(() => JSON.stringify(d) !== JSON.stringify(normalizeFiscalInput(initial)), [d, initial]);
   useBlocker({
     shouldBlockFn: () =>
       dirty && !savedRef.current && !window.confirm("Descartar as alterações não salvas?"),
@@ -169,7 +170,7 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
             `Confira o valor numérico em ${field === "stock" ? "Estoque" : field === "cost" ? "Custo" : field === "price" ? "Preço" : "Peso/dimensões"}.`,
           );
       }
-      await onSubmit({ ...d, name: d.name.trim(), sku: d.sku.trim().toUpperCase() });
+      await onSubmit(normalizeFiscalInput({ ...d, name: d.name.trim(), sku: d.sku.trim().toUpperCase() }));
       savedRef.current = true;
       onSaved?.();
     } catch (e) {
@@ -468,9 +469,8 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
               className="ios-field"
               inputMode="numeric"
               placeholder="8 dígitos"
-              maxLength={8}
               value={d.ncm}
-              onChange={(e) => setText("ncm", e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setText("ncm", normalizeFiscalCode(e.target.value))}
             />
           </Row>
           <Row label="CEST" origin={d.origins.cest}>
@@ -478,9 +478,8 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, 
               className="ios-field"
               inputMode="numeric"
               placeholder="7 dígitos"
-              maxLength={7}
               value={d.cest}
-              onChange={(e) => setText("cest", e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setText("cest", normalizeFiscalCode(e.target.value))}
             />
           </Row>
           <Row label="Origem" origin={d.origins.taxOrigin}>
