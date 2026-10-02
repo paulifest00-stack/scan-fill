@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy } from "lucide-react";
-import { repo } from "@/lib/products/repository";
+import { repo, isRemote } from "@/lib/products/repository";
 import { ProductForm } from "@/components/ProductForm";
 import { productQuery, productKeys } from "@/lib/products/queries";
 import { toInput } from "@/lib/products/types";
@@ -29,26 +29,50 @@ function EditProduct() {
   const { data, isLoading, error, refetch } = useQuery(productQuery(id));
   const save = useMutation({
     mutationFn: (d: Parameters<typeof repo.update>[1]) => repo.update(id, d),
-
   });
 
   const dup = (
-    <Link to="/novo" search={{ from: id }} aria-label="Duplicar" className="grid size-11 place-items-center text-primary"><Copy className="size-5" /></Link>
+    <Link
+      to="/novo"
+      search={{ from: id }}
+      aria-label="Duplicar"
+      className="grid size-11 place-items-center text-primary"
+    >
+      <Copy className="size-5" />
+    </Link>
   );
 
   return (
     <div className="mx-auto min-h-screen max-w-xl">
       <NavBar title="Editar" right={data ? dup : undefined} />
       <OfflineBanner />
-      {error ? <ErrorState error={error} onRetry={() => void refetch()} /> : isLoading ? (
-        <div className="space-y-3 p-4"><div className="skeleton h-24 w-24" /><div className="skeleton h-12 w-full" /><div className="skeleton h-40 w-full" /></div>
+      {error ? (
+        <ErrorState error={error} onRetry={() => void refetch()} />
+      ) : isLoading ? (
+        <div className="space-y-3 p-4">
+          <div className="skeleton h-24 w-24" />
+          <div className="skeleton h-12 w-full" />
+          <div className="skeleton h-40 w-full" />
+        </div>
       ) : !data ? (
         <p className="p-8 text-center text-muted-foreground">Produto não encontrado.</p>
       ) : (
-        <ProductForm key={`${data.id}:${data.version}`} selfId={id} initial={toInput(data)} submitLabel="Salvar no aparelho" onReload={() => { if (window.confirm("Recarregar e descartar suas alterações?")) void refetch(); }} onSubmit={async (d) => {
-          await save.mutateAsync(d);
-          await qc.invalidateQueries({ queryKey: productKeys.all });
-        }} onSaved={() => { void navigate({ to: "/" }); }} />
+        <ProductForm
+          key={`${data.id}:${data.version}`}
+          selfId={id}
+          initial={toInput(data)}
+          submitLabel={isRemote() ? "Salvar no Bling" : "Salvar no aparelho"}
+          onReload={() => {
+            if (window.confirm("Recarregar e descartar suas alterações?")) void refetch();
+          }}
+          onSubmit={async (d) => {
+            await save.mutateAsync(d);
+            await qc.invalidateQueries({ queryKey: productKeys.all });
+          }}
+          onSaved={() => {
+            void navigate({ to: "/" });
+          }}
+        />
       )}
     </div>
   );

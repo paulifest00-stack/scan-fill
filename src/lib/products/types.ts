@@ -51,23 +51,49 @@ export interface Product {
   updatedAt: string;
 }
 
-export type EditableField = Exclude<keyof Product, "id" | "remoteId" | "version" | "origins" | "syncStatus" | "updatedAt" | "images">;
+export type EditableField = Exclude<
+  keyof Product,
+  "id" | "remoteId" | "version" | "origins" | "syncStatus" | "updatedAt" | "images"
+>;
 
 /** Payload for create/update. Screens never set ids/sync metadata. */
-export type ProductInput = Omit<Product, "id" | "remoteId" | "syncStatus" | "updatedAt">;
+export type ProductInput = Omit<Product, "id" | "remoteId" | "syncStatus" | "updatedAt"> & {
+  depositId?: string | undefined;
+  supplierId?: string | undefined;
+};
 
 /** Lightweight shape for lists; remote adapters may return fewer fields here. */
-export type ProductSummary = Pick<Product, "id" | "name" | "sku" | "gtin" | "price" | "stock" | "status" | "syncStatus" | "updatedAt"> & {
+export type ProductSummary = Pick<
+  Product,
+  "id" | "name" | "sku" | "gtin" | "price" | "stock" | "status" | "syncStatus" | "updatedAt"
+> & {
   thumbnail?: string | undefined;
   missingCount: number;
 };
 
 export const emptyInput = (): ProductInput => ({
-  status: "active", name: "", sku: "", gtin: "", gtinPackage: "", ncm: "", cest: "", taxOrigin: "",
-  category: "", brand: "", unit: "UN",
-  price: null, cost: null, stock: null, netWeightKg: null, grossWeightKg: null,
-  widthCm: null, heightCm: null, depthCm: null,
-  description: "", images: [], origins: {},
+  status: "active",
+  name: "",
+  sku: "",
+  gtin: "",
+  gtinPackage: "",
+  ncm: "",
+  cest: "",
+  taxOrigin: "",
+  category: "",
+  brand: "",
+  unit: "UN",
+  price: null,
+  cost: null,
+  stock: null,
+  netWeightKg: null,
+  grossWeightKg: null,
+  widthCm: null,
+  heightCm: null,
+  depthCm: null,
+  description: "",
+  images: [],
+  origins: {},
 });
 
 export const toInput = (p: Product): ProductInput => {
