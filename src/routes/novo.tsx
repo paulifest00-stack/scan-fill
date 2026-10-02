@@ -2,8 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { repo } from "@/lib/products/repository";
-import { emptyDraft } from "@/lib/products/types";
+import { emptyInput, toInput } from "@/lib/products/types";
 import { ProductForm } from "@/components/ProductForm";
+import { productQuery, productKeys } from "@/lib/products/queries";
+import { ErrorState, OfflineBanner } from "@/components/StatusViews";
 import { NavBar } from "@/components/NavBar";
 
 export const Route = createFileRoute("/novo")({
@@ -25,22 +27,21 @@ function NewProduct() {
   const { gtin, from } = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const base = useQuery({ queryKey: ["product", from], queryFn: () => repo.get(from!), enabled: !!from });
-  const save = useMutation({
-    mutationFn: repo.create,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["products"] }); navigate({ to: "/" }); },
-  });
-
+  const base = useQuery({ ...productQuery(from ?? ""), enabled: !!from });
+  const save = useMutation({ mutationFn: (input: Parameters<typeof repo.create>[0]) => repo.create(input) });
   if (from && base.isLoading) return <NavBar title="Duplicar" />;
-
+  if (from && base.error) return <><NavBar title="Duplicar" /><ErrorState error={base.error} onRetry={() => void base.refetch()} /></>;
   const initial = base.data
-    ? { ...base.data, id: undefined as never, remoteId: undefined, sku: "", gtin: "", images: [], name: `${base.data.name} (cópia)` }
-    : { ...emptyDraft(), gtin: gtin ?? "", origins: gtin ? { gtin: "confirmed" as const } : {} };
-
+    ? { ...toInput(base.data), version: undefined, sku: "", gtin: "", gtinPackage: "", images: [], origins: {}, name: `${base.data.name} (cópia)` }
+    : { ...emptyInput(), gtin: gtin ?? "", origins: gtin ? { gtin: "confirmed" as const } : {} };
   return (
     <div className="mx-auto min-h-screen max-w-xl">
       <NavBar title={from ? "Duplicar produto" : "Novo produto"} />
-      <ProductForm key={from ?? gtin ?? "new"} initial={initial} saving={save.isPending} submitLabel="Cadastrar produto" onSubmit={(d) => save.mutate(d)} />
+      <OfflineBanner />
+      <ProductForm key={from ?? gtin ?? "new"} initial={initial} submitLabel="Cadastrar no aparelho" onSubmit={async (d) => {
+        await save.mutateAsync(d);
+        await qc.invalidateQueries({ queryKey: productKeys.all });
+      }} onSaved={() => { void navigate({ to: "/" }); }} />
     </div>
   );
 }

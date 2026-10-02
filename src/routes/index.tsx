@@ -1,9 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { Search, ScanLine, Plus, ChevronRight, Package, CircleAlert } from "lucide-react";
 import { repo } from "@/lib/products/repository";
-import { brl, matches, missingFields } from "@/lib/products/helpers";
+import { brl } from "@/lib/products/helpers";
+import { productListQuery } from "@/lib/products/queries";
+import { ErrorState, OfflineBanner } from "@/components/StatusViews";
+import { friendlyMessage } from "@/lib/products/errors";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 export const Route = createFileRoute("/")({
@@ -25,23 +28,25 @@ function ProductsPage() {
   const [onlyIncomplete, setOnlyIncomplete] = useState(false);
   const [scanning, setScanning] = useState(false);
   const navigate = useNavigate();
-  const { data, isLoading } = useQuery({ queryKey: ["products"], queryFn: () => repo.list() });
-
-  const list = useMemo(
-    () => (data ?? []).filter((p) => matches(p, q) && (!onlyIncomplete || missingFields(p).length > 0)),
-    [data, q, onlyIncomplete],
-  );
+  const [scanError, setScanError] = useState<string | null>(null);
+  const { data, isLoading, error, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteQuery(productListQuery({ query: q, incompleteOnly: onlyIncomplete }));
+  const list = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
 
   const onDetected = useCallback(async (code: string) => {
     setScanning(false);
-    const found = await repo.findByGtin(code);
+    setScanError(null);
+    try {
+    const found = await repo.findByCode(code);
     if (found) navigate({ to: "/produto/$id", params: { id: found.id } });
     else navigate({ to: "/novo", search: { gtin: code } });
+    } catch (e) { setScanError(friendlyMessage(e)); }
   }, [navigate]);
 
   return (
     <div className="mx-auto min-h-screen max-w-xl pb-28">
       <header className="ios-glass sticky top-0 z-20 px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
+        <OfflineBanner />
+        <p className="text-[13px] text-muted-foreground">Modo local · ainda sem conexão com o Bling</p>
         <h1 className="pt-2 text-[34px] font-bold leading-tight tracking-tight">Produtos</h1>
         <div className="mt-2 flex gap-2">
           <div className="flex h-10 flex-1 items-center gap-2 rounded-md bg-secondary px-3">
@@ -65,7 +70,8 @@ function ProductsPage() {
       </header>
 
       <div className="px-4 pt-3">
-        {isLoading ? (
+        {scanError && <p role="alert" className="mb-3 text-destructive">{scanError}</p>}
+        {error ? <ErrorState error={error} onRetry={() => void refetch()} /> : isLoading ? (
           <div className="ios-list">{[0, 1, 2, 3].map((i) => (
             <div key={i} className="ios-row"><div className="skeleton size-12" /><div className="flex-1 space-y-2"><div className="skeleton h-4 w-3/4" /><div className="skeleton h-3 w-1/3" /></div></div>
           ))}</div>
@@ -78,11 +84,11 @@ function ProductsPage() {
         ) : (
           <div className="ios-list">
             {list.map((p) => {
-              const miss = missingFields(p).length;
+              const miss = p.missingCount;
               return (
                 <Link key={p.id} to="/produto/$id" params={{ id: p.id }} className="ios-row active:bg-secondary">
-                  {p.images[0]
-                    ? <img src={p.images[0]} alt="" className="size-12 shrink-0 rounded-sm object-cover" />
+                  {p.thumbnail
+                    ? <img src={p.thumbnail} alt="" className="size-12 shrink-0 rounded-sm object-cover" />
                     : <div className="grid size-12 shrink-0 place-items-center rounded-sm bg-secondary"><Package className="size-5 text-tertiary" /></div>}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[16px] font-medium">{p.name}</p>
@@ -99,6 +105,8 @@ function ProductsPage() {
           </div>
         )}
       </div>
+
+      {hasNextPage && <button className="ios-btn-tinted mx-auto mt-4 flex" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>{isFetchingNextPage ? "Carregando…" : "Carregar mais"}</button>}
 
       <Link to="/novo" search={{}} aria-label="Novo produto"
         className="fixed right-5 bottom-[max(env(safe-area-inset-bottom),20px)] z-30 grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95">

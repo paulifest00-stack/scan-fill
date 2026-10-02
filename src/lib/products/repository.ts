@@ -1,5 +1,5 @@
 import { RepoError } from "./errors";
-import { normalize, toSummary } from "./helpers";
+import { normalize, toSummary, isValidGtin } from "./helpers";
 import { emptyInput, type Product, type ProductInput, type ProductSummary } from "./types";
 
 export interface ListParams {
@@ -49,7 +49,11 @@ const seed = (): Product[] => [
 function read(): Product[] {
   const raw = localStorage.getItem(KEY);
   if (!raw) { const s = seed(); localStorage.setItem(KEY, JSON.stringify(s)); return s; }
-  return JSON.parse(raw) as Product[];
+  try {
+    const items = JSON.parse(raw);
+    if (!Array.isArray(items)) throw new Error();
+    return items;
+  } catch { throw new RepoError("validation", "Os dados locais não puderam ser lidos. Preserve os dados do navegador e tente recuperar uma cópia."); }
 }
 function write(items: Product[]) {
   try { localStorage.setItem(KEY, JSON.stringify(items)); }
@@ -63,10 +67,26 @@ async function network<T>(fn: () => T, ms = 250): Promise<T> {
   return fn();
 }
 
+function validateInput(input: ProductInput) {
+  if (!input.name.trim() || !input.sku.trim()) throw new RepoError("validation", "Informe nome e SKU.");
+  for (const field of ["gtin", "gtinPackage"] as const) {
+    if (input[field] && !isValidGtin(input[field])) throw new RepoError("validation", "Confira o GTIN/EAN informado.", { field });
+  }
+  if (input.ncm && !/^\d{8}$/.test(input.ncm)) throw new RepoError("validation", "NCM deve ter 8 dígitos.", { field: "ncm" });
+  if (input.cest && !/^\d{7}$/.test(input.cest)) throw new RepoError("validation", "CEST deve ter 7 dígitos.", { field: "cest" });
+  for (const field of ["price", "cost", "netWeightKg", "grossWeightKg", "widthCm", "heightCm", "depthCm"] as const) {
+    const value = input[field];
+    if (value !== null && (!Number.isFinite(value) || value < 0)) throw new RepoError("validation", "Preço, custo, peso e dimensões devem ser números não negativos.", { field });
+  }
+  if (Object.entries(input.origins).some(([field, origin]) => origin === "suggested" && ["gtin", "gtinPackage", "ncm", "cest", "taxOrigin", "price", "cost", "stock", "netWeightKg", "grossWeightKg", "widthCm", "heightCm", "depthCm", "sku"].includes(field)))
+    throw new RepoError("validation", "Confirme os dados críticos sugeridos pela IA antes de salvar.");
+}
+
 function assertUnique(items: Product[], input: ProductInput, selfId?: string) {
   const others = items.filter((p) => p.id !== selfId);
   const checks: [string, string, (p: Product) => boolean][] = [
     ["gtin", "GTIN", (p) => !!input.gtin && (p.gtin === input.gtin || p.gtinPackage === input.gtin)],
+    ["gtinPackage", "GTIN da embalagem", (p) => !!input.gtinPackage && (p.gtin === input.gtinPackage || p.gtinPackage === input.gtinPackage)],
     ["sku", "SKU", (p) => !!input.sku && p.sku.toUpperCase() === input.sku.toUpperCase()],
   ];
   for (const [field, label, hit] of checks) {
@@ -97,16 +117,18 @@ export const localRepository: ProductRepository = {
     return read().find((p) => p.gtin === c || p.gtinPackage === c || p.sku.toUpperCase() === c) ?? null;
   }),
   create: (input) => network(() => {
+    validateInput(input);
     const items = read();
     assertUnique(items, input);
     const p: Product = {
       ...input, id: crypto.randomUUID(), version: "1",
-      images: input.images.map((i) => ({ url: i.url })), syncStatus: "synced", updatedAt: now(),
+      images: input.images.map((i) => ({ ...i, local: true })), syncStatus: "pending", updatedAt: now(),
     };
     write([p, ...items]);
     return p;
   }, 500),
   update: (id, input) => network(() => {
+    validateInput(input);
     const items = read();
     const i = items.findIndex((p) => p.id === id);
     const current = items[i];
@@ -117,7 +139,7 @@ export const localRepository: ProductRepository = {
     const next: Product = {
       ...current, ...input, id,
       version: String(Number(current.version ?? "0") + 1),
-      images: input.images.map((img) => ({ url: img.url })), syncStatus: "synced", updatedAt: now(),
+      images: input.images.map((img) => ({ ...img, local: true })), syncStatus: "pending", updatedAt: now(),
     };
     items[i] = next;
     write(items);

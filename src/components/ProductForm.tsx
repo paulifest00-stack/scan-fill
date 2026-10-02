@@ -4,7 +4,7 @@ import { Camera, ScanLine, Sparkles, Wand2, X, CheckCircle2, AlertCircle, Loader
 import { BarcodeScanner } from "./BarcodeScanner";
 import { generateSku, isValidGtin, missingFields, parseDecimal } from "@/lib/products/helpers";
 import { repo } from "@/lib/products/repository";
-import { toRepoError, type RepoError } from "@/lib/products/errors";
+import { toRepoError, RepoError } from "@/lib/products/errors";
 import { analyzer, CRITICAL_FIELDS, sanitizeSuggestions, type FieldSuggestion } from "@/lib/products/analyzer";
 import type { EditableField, ProductInput } from "@/lib/products/types";
 import { compressImage } from "@/lib/image";
@@ -15,6 +15,7 @@ interface Props {
   selfId?: string | undefined;
   submitLabel: string;
   onSubmit: (d: ProductInput) => Promise<void>;
+  onSaved?: (() => void) | undefined;
   onReload?: (() => void) | undefined;
 }
 
@@ -26,7 +27,7 @@ const LABELS: Partial<Record<EditableField, string>> = {
   netWeightKg: "Peso líquido", grossWeightKg: "Peso bruto", ncm: "NCM", unit: "Unidade",
 };
 
-export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload }: Props) {
+export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload, onSaved }: Props) {
   const [d, setD] = useState<ProductInput>(initial);
   const [numText, setNumText] = useState<Partial<Record<NumKey, string>>>({});
   const [scanning, setScanning] = useState(false);
@@ -74,7 +75,7 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload }
     try {
       const urls = await Promise.all(Array.from(files).map((f) => compressImage(f)));
       setD((p) => ({ ...p, images: [...p.images, ...urls.map((url) => ({ url, local: true }))] }));
-    } finally { setPhotoBusy(false); if (fileRef.current) fileRef.current.value = ""; }
+    } catch { setSaveError(new RepoError("validation", "Não foi possível abrir esta foto. Tente outra imagem.")); } finally { setPhotoBusy(false); if (fileRef.current) fileRef.current.value = ""; }
   };
 
   const runAnalysis = async () => {
@@ -97,6 +98,7 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload }
     try {
       await onSubmit({ ...d, name: d.name.trim(), sku: d.sku.trim().toUpperCase() });
       savedRef.current = true;
+      onSaved?.();
     } catch (e) {
       setSaveError(toRepoError(e));
     } finally { setSaving(false); }
@@ -234,6 +236,10 @@ export function ProductForm({ initial, selfId, submitLabel, onSubmit, onReload }
           value={d.description} onChange={(e) => setText("description", e.target.value)} />
       </div>
 
+      {pendingSuggested.length > 0 && <div className="mx-4 mt-4 rounded-md bg-card p-3">
+        <p className="text-[13px]">Confira as sugestões antes de confirmar.</p>
+        {pendingSuggested.map((field) => <button key={field} type="button" className="ios-btn-tinted mt-2 w-full" onClick={() => setD((p) => ({ ...p, origins: { ...p.origins, [field]: "confirmed" } }))}>Confirmar {LABELS[field] ?? field}: {String(d[field])}</button>)}
+      </div>}
       {/* Sticky footer */}
       <div className="ios-glass fixed inset-x-0 bottom-0 z-30 border-t px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)]">
         <div className="mx-auto max-w-xl">

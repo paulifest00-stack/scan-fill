@@ -31,7 +31,7 @@ export function generateSku(name: string, category = ""): string {
 
 /** Validates EAN-8 / UPC-A / EAN-13 / GTIN-14 check digit. */
 export function isValidGtin(code: string): boolean {
-  if (!/^\d{8}$|^\d{12,14}$/.test(code)) return false;
+  if (!/^(?:\d{8}|\d{12}|\d{13}|\d{14})$/.test(code)) return false;
   const digits = code.split("").map(Number);
   const check = digits.pop()!;
   const sum = digits.reverse().reduce((s, d, i) => s + d * (i % 2 === 0 ? 3 : 1), 0);
